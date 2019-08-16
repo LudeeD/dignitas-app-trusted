@@ -3,10 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styled from 'styled-components';
 
-const Wrapper = styled.div`
-width: $(props => props.width);
-height: $(props => props.height);
-`;
+const Wrapper = styled.div` width: $(props => props.width); height: $(props => props.height); `;
 
 export default class Map extends React.Component{
     componentDidMount(){
@@ -27,5 +24,4 @@ export default class Map extends React.Component{
     render(){
         return <Wrapper width="1280px" height="720px" id="map"/>;
     }
-
 }

@@ -1,33 +1,49 @@
 import React, { Component } from 'react'
 import { Map, TileLayer, Marker, Popup } from 'react-leaflet'
 
-type State = {
-  lat: number,
-  lng: number,
-  zoom: number,
+import { connect } from 'react-redux';
+import { center } from '../actions/center';
+
+
+
+class MapSection extends Component<{}, State> {
+
+    render() {
+        const position = this.props.center_coord;
+        console.log(position)
+        const votes = this.props.posts;
+        console.log(votes)
+
+        const markers = []
+
+        votes.forEach( (value, key, map ) => {
+            let pos_marker = [value.location.lat, value.location.lng]
+            markers.push(
+              <Marker key={key} position={pos_marker}>
+                <Popup>
+                  {value.title}
+                </Popup>
+              </Marker>
+            )
+        });
+
+        const zoom = 15;
+
+        return (
+            <Map center={position} zoom={zoom}>
+            <TileLayer
+            attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            { markers }
+            </Map>
+        )
+    }
 }
 
-export default class MapSection extends Component<{}, State> {
-  state = {
-    lat: 51.505,
-    lng: -0.09,
-    zoom: 13,
-  }
+const mapStateToProps = state => ({
+    posts: state.posts.votes,
+    center_coord: state.posts.center_coord,
+});
 
-  render() {
-    const position = [this.state.lat, this.state.lng]
-    return (
-      <Map center={position} zoom={this.state.zoom}>
-        <TileLayer
-          attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Marker position={position}>
-          <Popup>
-            A pretty CSS3 popup. <br /> Easily customizable.
-          </Popup>
-        </Marker>
-      </Map>
-    )
-  }
-}
+export default connect(mapStateToProps, {center})(MapSection)

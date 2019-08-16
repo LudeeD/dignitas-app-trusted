@@ -4,6 +4,8 @@ import './App.css';
 import { Provider } from 'react-redux';
 import store from './store';
 
+import openSocket from 'socket.io-client';
+
 import { makeStyles } from '@material-ui/core/styles';
 import Container from '@material-ui/core/Container';
 import Grid from '@material-ui/core/Grid';
@@ -25,6 +27,8 @@ const useStyles = makeStyles(theme => ({
 }));
 
 
+const socket = openSocket('http://localhost:1337')
+
 function App() {
   const classes = useStyles();
 
@@ -38,7 +42,7 @@ function App() {
               <MapSection/>
             </Grid>
             <Grid item xs={6}>
-              <VoteList/>
+              <VoteList socket={ socket }/>
             </Grid>
           </Grid>
         </div>
