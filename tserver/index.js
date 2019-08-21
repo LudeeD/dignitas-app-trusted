@@ -17,11 +17,13 @@ const {
     EventFilter,
     StateChangeList,
     ClientEventsSubscribeRequest,
-    ClientEventsSubscribeResponse 
+    ClientEventsSubscribeResponse,
+    ClientBatchSubmitRequest,
+    ClientBatchSubmitResponse
 } = require('sawtooth-sdk/protobuf')
 
 const VALIDATOR_URL = "tcp://localhost:4004"
-const NULL_BLOCK_ID = '1cc2278441d74fd8020d256cb8925c83bdd1ee442d44a66455c14f569eea1e1828a31101688f1eedae9659d4e59d64ab4a9538c0d45b31cab8aabcdfb8cb848e'
+const NULL_BLOCK_ID = 'be49547492e56beba2252615779ec1a9027840345e134e736987289696328dfa0d980e130f9827ce5d1e9d52b470387607cc242529bd5f1e1bf7abed9aa41a26'
 const stream = new Stream(VALIDATOR_URL)
 
 const subscribe = () => {
@@ -100,17 +102,11 @@ const sendToSocket = (changes) => {
     changes.forEach( change => io.emit("response", cbor.decodeFirstSync(change.value)))
 }
 
-const closeVote = async ( id, veredict ) => {
-    let positive_votes = await db.retrieve_positive(id)
-    let negative_votes = await db.retrieve_negative(id)
-    console.log(positive_votes)
-    console.log(negative_votes)
-}
+
 
 const start = () => {
     //dig.updateKey()
-    dig.closeVote('6fc3f26baa46')
-
+    db.initialize()
 
     return new Promise(resolve => {
         stream.connect(() => {
@@ -120,14 +116,39 @@ const start = () => {
     })
 }
 
+const closeVote = async ( id, veredict ) => {
+    let positive_votes = await db.retrieve_positive(id)
+    console.log(positive_votes)
+    let negative_votes = await db.retrieve_negative(id)
+    console.log(negative_votes)
+    negative_votes.forEach( x => x.value = Math.abs(x.value))
+    console.log(negative_votes)
 
-app.get('/:veredict/:id', function(req, res){
+    let pot_true  = 0;
+    positive_votes.forEach( x => pot_true = pot_true + x.value )
+    let pot_false = 0;
+    negative_votes.forEach( x => pot_false = pot_false + x.value )
+    let rewards = new Map()
+
+    if( veredict == 'true' ){
+      pot_false = pot_false * 1.1;
+      positive_votes.forEach( x => rewards.set([x.voter], Math.round(x.value + (pot_false*(x.value/pot_true)))))
+    }else{
+      pot_true = pot_true * 1.1;
+      negative_votes.forEach( x => rewards.set([x.voter], Math.round(x.value + (pot_true*(x.value/pot_false)))))
+    }
+
+    dig.close(id, rewards)
+}
+
+
+app.get('/close/:id/:veredict', function(req, res){
     let vote_id = req.params.id;
     let veredict = req.params.veredict;
 
     closeVote(vote_id, veredict)
 
-    res.send({status: 'sent'})
+    res.send({ "status": "closing" })
 });
 
 app.use(function(req, res, next) {
@@ -138,11 +159,9 @@ app.use(function(req, res, next) {
 
 io.on('connection', function(socket){
     console.log('a user connected');
-
     socket.on('disconnect', function() {
         console.log('user disconnected');
     });
-
 });
 
 http.listen(1337, function(){
