@@ -4,7 +4,7 @@
 
 ## Components
 
-- Reac app
+- React app
 	
     Pretty React application
 
